@@ -22,10 +22,8 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
@@ -103,8 +101,7 @@ func main() {
 	} else {
 		extraLatency = time.Duration(0)
 	}
-
-	sigs := make(chan os.Signal, 1)
+	/*sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGUSR1, syscall.SIGUSR2)
 	go func() {
 		for {
@@ -120,6 +117,8 @@ func main() {
 		}
 	}()
 
+
+	 */
 	if os.Getenv("PORT") != "" {
 		port = os.Getenv("PORT")
 	}
