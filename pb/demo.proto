@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package hipstershop;
 
+option go_package = ".;hipstershop";
+
 // -----------------Cart service-----------------
 
 service CartService {
@@ -82,6 +84,7 @@ message Product {
     // Categories such as "vintage" or "gardening" that can be used to look up
     // other related products.
     repeated string categories = 6;
+    int64 discount = 7;
 }
 
 message ListProductsResponse {
