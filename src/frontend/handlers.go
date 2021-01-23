@@ -42,6 +42,7 @@ var (
 	templates = template.Must(template.New("").
 			Funcs(template.FuncMap{
 			"renderMoney": renderMoney,
+			"renderDiscount": renderDiscount,
 		}).ParseGlob("templates/*.html"))
 	plat platformDetails
 )
@@ -459,4 +460,9 @@ func cartSize(c []*pb.CartItem) int {
 
 func renderMoney(money pb.Money) string {
 	return fmt.Sprintf("%s %d.%02d", money.GetCurrencyCode(), money.GetUnits(), money.GetNanos()/10000000)
+}
+
+// TODO(dennisko762) Sorry I've overridden the function while rebasing :(
+func renderDiscount(d int64) string {
+	return fmt.Sprintf("%d", d)
 }
