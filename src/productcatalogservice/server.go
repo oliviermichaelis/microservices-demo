@@ -29,6 +29,7 @@ import (
 	"time"
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
+	discountservice "github.com/oliviermichaelis/discount-service/pkg/genproto"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
 	"cloud.google.com/go/profiler"
@@ -282,7 +283,54 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	if found == nil {
 		return nil, status.Errorf(codes.NotFound, "no product with ID %s", req.Id)
 	}
-	return found, nil
+	addr := "localhost:5000"
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
+	if err != nil {
+		return nil, err
+	}
+
+	client := discountservice.NewDiscountServiceClient(conn)
+	d, err := client.GetProductDiscount(ctx, convertProductDiscount(found))
+	if err != nil {
+		return nil, err
+	}
+	return convertProduct(d), nil
+}
+
+func convertProductDiscount(product *pb.Product) *discountservice.Product{
+	m := discountservice.Money{
+		CurrencyCode: product.PriceUsd.CurrencyCode,
+		Units: product.PriceUsd.Units,
+		Nanos: product.PriceUsd.Nanos,
+	}
+	p := discountservice.Product{
+		Id:          product.Id,
+		Name:        product.Name,
+		Description: product.Description,
+		Picture:     product.Picture,
+		PriceUsd:    &m,
+		Categories:  product.Categories,
+		Discount:    product.Discount,
+	}
+	return &p
+}
+
+func convertProduct(product *discountservice.Product) *pb.Product {
+	m := pb.Money{
+		CurrencyCode: product.PriceUsd.CurrencyCode,
+		Units:        product.PriceUsd.Units,
+		Nanos:        product.PriceUsd.Nanos,
+	}
+	p := pb.Product{
+		Id:          product.Id,
+		Name:        product.Name,
+		Description: product.Description,
+		Picture:     product.Picture,
+		PriceUsd:    &m,
+		Categories:  product.Categories,
+		Discount:    product.Discount,
+	}
+	return &p
 }
 
 func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
