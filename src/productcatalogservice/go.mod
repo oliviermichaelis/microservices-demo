@@ -6,10 +6,11 @@ require (
 	cloud.google.com/go v0.40.0
 	contrib.go.opencensus.io/exporter/jaeger v0.2.0
 	contrib.go.opencensus.io/exporter/stackdriver v0.5.0
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.0
 	github.com/google/pprof v0.0.0-20190515194954-54271f7e092f // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/oliviermichaelis/discount-service v0.0.0-20210126203311-a842bb0fafdb
 	github.com/sirupsen/logrus v1.4.2
 	github.com/uber/jaeger-client-go v2.21.1+incompatible // indirect
 	go.opencensus.io v0.21.0
@@ -17,6 +18,6 @@ require (
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
 	google.golang.org/api v0.7.1-0.20190709010654-aae1d1b89c27 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.35.0
 	google.golang.org/protobuf v1.25.0
 )
