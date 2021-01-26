@@ -231,7 +231,15 @@ func initProfiling(service, version string) {
 	log.Warn("could not initialize Stackdriver profiler after retrying, giving up")
 }
 
-type productCatalog struct{}
+type productCatalog struct{
+	addr string
+}
+
+func NewProductCatalog() *productCatalog {
+	return &productCatalog{
+		addr:   "localhost:5000",
+	}
+}
 
 func readCatalogFile(catalog *pb.ListProductsResponse) error {
 	catalogMutex.Lock()
@@ -259,6 +267,8 @@ func parseCatalog() []*pb.Product {
 	return cat.Products
 }
 
+
+
 func (p *productCatalog) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 }
@@ -267,9 +277,43 @@ func (p *productCatalog) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
-func (p *productCatalog) ListProducts(context.Context, *pb.Empty) (*pb.ListProductsResponse, error) {
+func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.ListProductsResponse, error) {
 	time.Sleep(extraLatency)
-	return &pb.ListProductsResponse{Products: parseCatalog()}, nil
+	// gets all products with parsecatalog()
+	pr := parseCatalog()
+
+	// Create GRPC client to connect to discount-service
+	conn, err := grpc.DialContext(ctx, p.addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
+	if err != nil {
+		return nil, err
+	}
+
+	client := discountservice.NewDiscountServiceClient(conn)
+
+	// converts array of pb.Products to discountservice.products
+	var converted []*discountservice.Product
+	for _, v := range pr {
+		converted = append(converted, convertProductDiscount(v))
+	}
+
+	// passes all products to discount-service and receives a list of discounted products
+	request := discountservice.GetAllProductsRequest{
+		Products: converted,
+	}
+
+	//var d discountservice.GetAllProductsResponse
+	d, err := client.GetAllProductsDiscount(ctx, &request)
+	if err != nil {
+		return nil, err
+	}
+
+	var c []*pb.Product
+	for _, v := range d.Products {
+		 c = append(c, convertProduct(v))
+	}
+
+	// returns all discounted products
+	return &pb.ListProductsResponse{Products: c}, nil
 }
 
 func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.Product, error) {
@@ -283,8 +327,8 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	if found == nil {
 		return nil, status.Errorf(codes.NotFound, "no product with ID %s", req.Id)
 	}
-	addr := "localhost:5000"
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
+
+	conn, err := grpc.DialContext(ctx, p.addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
 	if err != nil {
 		return nil, err
 	}
