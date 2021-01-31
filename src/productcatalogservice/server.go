@@ -142,7 +142,7 @@ func run(port string) string {
 		srv = grpc.NewServer()
 	}
 
-	svc := &productCatalog{}
+	svc := NewProductCatalog()
 
 	pb.RegisterProductCatalogServiceServer(srv, svc)
 	healthpb.RegisterHealthServer(srv, svc)
@@ -236,8 +236,9 @@ type productCatalog struct{
 }
 
 func NewProductCatalog() *productCatalog {
+	// TODO(oliviermichaelis + Thi) this should be configurable
 	return &productCatalog{
-		addr:   "localhost:5000",
+		addr:   "discountservice.default.svc.cluster.local:5000",
 	}
 }
 
