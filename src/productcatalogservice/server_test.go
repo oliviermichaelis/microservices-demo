@@ -74,7 +74,7 @@ func TestConvertToProduct(t *testing.T) {
 		Name:        "Camera",
 		Description: "vintage camera",
 		Picture:     "123",
-		PriceUsd:    nil,
+		PriceUsd:    &discountservice.Money{},
 		Categories:  []string{"hobbies", "vintage"},
 		Discount:    25,
 	}
