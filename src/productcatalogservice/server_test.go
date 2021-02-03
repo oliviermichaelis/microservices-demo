@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	discountservice "github.com/oliviermichaelis/discount-service/pkg/genproto"
 	"testing"
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
@@ -64,5 +65,34 @@ func TestServer(t *testing.T) {
 	}
 	if diff := cmp.Diff(sres.Results, []*pb.Product{parseCatalog()[0]}, cmp.Comparer(proto.Equal)); diff != "" {
 		t.Error(diff)
+	}
+}
+
+func TestConvertToProduct(t *testing.T) {
+	pr := discountservice.Product{
+		Id:          "1",
+		Name:        "Camera",
+		Description: "vintage camera",
+		Picture:     "123",
+		PriceUsd:    nil,
+		Categories:  []string{"hobbies", "vintage"},
+		Discount:    25,
+	}
+
+	prc := convertToProduct(&pr)
+	if pr.Id != prc.Id {
+		t.Errorf("Id should be %s but is %s", pr.Id, prc.Id)
+	}
+	if pr.Name != prc.Name {
+		t.Errorf("Name should be %s but is %s", pr.Name, prc.Name)
+	}
+	if pr.Description != prc.Description {
+		t.Errorf("Description should be %s but is %s", pr.Description, prc.Description)
+	}
+	if pr.Picture != prc.Picture {
+		t.Errorf("Picture should be %s but is %s", pr.Picture, prc.Picture)
+	}
+	if pr.Discount != prc.Discount {
+		t.Errorf("Id should be %d but is %d", pr.Discount, prc.Discount)
 	}
 }
