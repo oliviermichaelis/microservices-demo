@@ -142,7 +142,7 @@ func run(port string) string {
 		srv = grpc.NewServer()
 	}
 
-	svc := &productCatalog{}
+	svc := NewProductCatalog()
 
 	pb.RegisterProductCatalogServiceServer(srv, svc)
 	healthpb.RegisterHealthServer(srv, svc)
@@ -236,8 +236,9 @@ type productCatalog struct{
 }
 
 func NewProductCatalog() *productCatalog {
+	// TODO(oliviermichaelis + Thi) this should be configurable
 	return &productCatalog{
-		addr:   "localhost:5000",
+		addr:   "discountservice.default.svc.cluster.local:5000",
 	}
 }
 
@@ -293,7 +294,7 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 	// converts array of pb.Products to discountservice.products
 	var converted []*discountservice.Product
 	for _, v := range pr {
-		converted = append(converted, convertToProductDiscount(v))
+		converted = append(converted, convertProductDiscount(v))
 	}
 
 	// passes all products to discount-service and receives a list of discounted products
@@ -309,7 +310,7 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 
 	var c []*pb.Product
 	for _, v := range d.Products {
-		 c = append(c, convertToProduct(v))
+		 c = append(c, convertProduct(v))
 	}
 
 	// returns all discounted products
@@ -334,14 +335,14 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	}
 
 	client := discountservice.NewDiscountServiceClient(conn)
-	d, err := client.GetProductDiscount(ctx, convertToProductDiscount(found))
+	d, err := client.GetProductDiscount(ctx, convertProductDiscount(found))
 	if err != nil {
 		return nil, err
 	}
-	return convertToProduct(d), nil
+	return convertProduct(d), nil
 }
 
-func convertToProductDiscount(product *pb.Product) *discountservice.Product{
+func convertProductDiscount(product *pb.Product) *discountservice.Product{
 	m := discountservice.Money{
 		CurrencyCode: product.PriceUsd.CurrencyCode,
 		Units: product.PriceUsd.Units,
@@ -359,7 +360,7 @@ func convertToProductDiscount(product *pb.Product) *discountservice.Product{
 	return &p
 }
 
-func convertToProduct(product *discountservice.Product) *pb.Product {
+func convertProduct(product *discountservice.Product) *pb.Product {
 	m := pb.Money{
 		CurrencyCode: product.PriceUsd.CurrencyCode,
 		Units:        product.PriceUsd.Units,
