@@ -96,3 +96,32 @@ func TestConvertToProduct(t *testing.T) {
 		t.Errorf("Id should be %d but is %d", pr.Discount, prc.Discount)
 	}
 }
+
+func TestConvertToProductDiscount(t *testing.T) {
+	pr := pb.Product{
+		Id:          "1",
+		Name:        "Camera",
+		Description: "vintage camera",
+		Picture:     "123",
+		PriceUsd:    nil,
+		Categories:  []string{"hobbies", "vintage"},
+		Discount:    25,
+	}
+
+	prc := convertToProductDiscount(&pr)
+	if pr.Id != prc.Id {
+		t.Errorf("Id should be %s but is %s", pr.Id, prc.Id)
+	}
+	if pr.Name != prc.Name {
+		t.Errorf("Name should be %s but is %s", pr.Name, prc.Name)
+	}
+	if pr.Description != prc.Description {
+		t.Errorf("Description should be %s but is %s", pr.Description, prc.Description)
+	}
+	if pr.Picture != prc.Picture {
+		t.Errorf("Picture should be %s but is %s", pr.Picture, prc.Picture)
+	}
+	if pr.Discount != prc.Discount {
+		t.Errorf("Id should be %d but is %d", pr.Discount, prc.Discount)
+	}
+}
