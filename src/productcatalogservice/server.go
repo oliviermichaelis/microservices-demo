@@ -294,7 +294,7 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 	// converts array of pb.Products to discountservice.products
 	var converted []*discountservice.Product
 	for _, v := range pr {
-		converted = append(converted, convertProductDiscount(v))
+		converted = append(converted, convertToProductDiscount(v))
 	}
 
 	// passes all products to discount-service and receives a list of discounted products
@@ -310,7 +310,7 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 
 	var c []*pb.Product
 	for _, v := range d.Products {
-		 c = append(c, convertProduct(v))
+		 c = append(c, convertToProduct(v))
 	}
 
 	// returns all discounted products
@@ -335,14 +335,14 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	}
 
 	client := discountservice.NewDiscountServiceClient(conn)
-	d, err := client.GetProductDiscount(ctx, convertProductDiscount(found))
+	d, err := client.GetProductDiscount(ctx, convertToProductDiscount(found))
 	if err != nil {
 		return nil, err
 	}
-	return convertProduct(d), nil
+	return convertToProduct(d), nil
 }
 
-func convertProductDiscount(product *pb.Product) *discountservice.Product{
+func convertToProductDiscount(product *pb.Product) *discountservice.Product{
 	m := discountservice.Money{
 		CurrencyCode: product.PriceUsd.CurrencyCode,
 		Units: product.PriceUsd.Units,
@@ -360,7 +360,7 @@ func convertProductDiscount(product *pb.Product) *discountservice.Product{
 	return &p
 }
 
-func convertProduct(product *discountservice.Product) *pb.Product {
+func convertToProduct(product *discountservice.Product) *pb.Product {
 	m := pb.Money{
 		CurrencyCode: product.PriceUsd.CurrencyCode,
 		Units:        product.PriceUsd.Units,
@@ -381,8 +381,14 @@ func convertProduct(product *discountservice.Product) *pb.Product {
 func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
 	time.Sleep(extraLatency)
 	// Intepret query as a substring match in name or description.
+
+	pr, err := p.ListProducts(ctx, &pb.Empty{})
+	if err != nil {
+		return nil, err
+	}
+
 	var ps []*pb.Product
-	for _, p := range parseCatalog() {
+	for _, p := range pr.Products {
 		if strings.Contains(strings.ToLower(p.Name), strings.ToLower(req.Query)) ||
 			strings.Contains(strings.ToLower(p.Description), strings.ToLower(req.Query)) {
 			ps = append(ps, p)
