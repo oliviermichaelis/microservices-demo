@@ -134,9 +134,9 @@ jobs:
         run: kubectl apply -f kubernetes-manifests/frontend.yaml
       - name: change image of productcatalogservice
         shell: sh
-        run: 'sed -i "s=image: ghcr.io/oliviermichaelis/productcatalogservice:master=image: ghcr.io/oliviermichaelis/productcatalogservice:${GITHUB_SHA}=g" kubernetes-manifests/productcatalogservice_cloud.yaml'
+        run: 'sed -i "s=image: ghcr.io/oliviermichaelis/productcatalogservice:master=image: ghcr.io/oliviermichaelis/productcatalogservice:${GITHUB_SHA}=g" kubernetes-manifests/productcatalogservice_cloud.yml'
       - name: deploy productcatalogservice
-        run: kubectl apply -f kubernetes-manifests/productcatalogservice_cloud.yaml
+        run: kubectl apply -f kubernetes-manifests/productcatalogservice_cloud.yml
       - name: change image of currencyservice
         shell: sh
         run: 'sed -i "s=image: currencyservice=image: ghcr.io/oliviermichaelis/currencyservice:${GITHUB_SHA}=g" kubernetes-manifests/currencyservice.yaml'
