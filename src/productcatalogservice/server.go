@@ -53,6 +53,7 @@ var (
 	extraLatency time.Duration
 
 	port = "3550"
+	discountServiceAddr = "discountservice.default.svc.cluster.local:5000"
 
 	reloadCatalog bool
 )
@@ -88,6 +89,13 @@ func main() {
 		go initProfiling("productcatalogservice", "1.0.0")
 	} else {
 		log.Info("Profiling disabled.")
+	}
+
+	if env := os.Getenv("DISCOUNTSERVICE_ADDR"); env == "" {
+		log.Info("using default discountservice address: ", discountServiceAddr)
+	} else {
+		log.Info("discountservice address: ", env)
+		discountServiceAddr = env
 	}
 
 	flag.Parse()
@@ -142,7 +150,7 @@ func run(port string) string {
 		srv = grpc.NewServer()
 	}
 
-	svc := NewProductCatalog()
+	svc := NewProductCatalog(discountServiceAddr)
 
 	pb.RegisterProductCatalogServiceServer(srv, svc)
 	healthpb.RegisterHealthServer(srv, svc)
@@ -231,14 +239,13 @@ func initProfiling(service, version string) {
 	log.Warn("could not initialize Stackdriver profiler after retrying, giving up")
 }
 
-type productCatalog struct{
+type productCatalog struct {
 	addr string
 }
 
-func NewProductCatalog() *productCatalog {
-	// TODO(oliviermichaelis + Thi) this should be configurable
+func NewProductCatalog(addr string) *productCatalog {
 	return &productCatalog{
-		addr:   "discountservice.default.svc.cluster.local:5000",
+		addr: addr,
 	}
 }
 
@@ -268,8 +275,6 @@ func parseCatalog() []*pb.Product {
 	return cat.Products
 }
 
-
-
 func (p *productCatalog) Check(ctx context.Context, req *healthpb.HealthCheckRequest) (*healthpb.HealthCheckResponse, error) {
 	return &healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}, nil
 }
@@ -278,7 +283,7 @@ func (p *productCatalog) Watch(req *healthpb.HealthCheckRequest, ws healthpb.Hea
 	return status.Errorf(codes.Unimplemented, "health check via Watch not implemented")
 }
 
-func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.ListProductsResponse, error) {
+func (p *productCatalog) ListProducts(ctx context.Context, em *pb.Empty) (*pb.ListProductsResponse, error) {
 	time.Sleep(extraLatency)
 	// gets all products with parsecatalog()
 	pr := parseCatalog()
@@ -286,6 +291,7 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 	// Create GRPC client to connect to discount-service
 	conn, err := grpc.DialContext(ctx, p.addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
@@ -305,12 +311,13 @@ func (p *productCatalog) ListProducts(ctx context.Context,em *pb.Empty) (*pb.Lis
 	//var d discountservice.GetAllProductsResponse
 	d, err := client.GetAllProductsDiscount(ctx, &request)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
 	var c []*pb.Product
 	for _, v := range d.Products {
-		 c = append(c, convertToProduct(v))
+		c = append(c, convertToProduct(v))
 	}
 
 	// returns all discounted products
@@ -342,11 +349,11 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	return convertToProduct(d), nil
 }
 
-func convertToProductDiscount(product *pb.Product) *discountservice.Product{
+func convertToProductDiscount(product *pb.Product) *discountservice.Product {
 	m := discountservice.Money{
 		CurrencyCode: product.PriceUsd.CurrencyCode,
-		Units: product.PriceUsd.Units,
-		Nanos: product.PriceUsd.Nanos,
+		Units:        product.PriceUsd.Units,
+		Nanos:        product.PriceUsd.Nanos,
 	}
 	p := discountservice.Product{
 		Id:          product.Id,
