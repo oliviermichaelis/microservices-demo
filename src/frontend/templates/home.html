@@ -49,10 +49,14 @@
               <div class="d-flex justify-content-center align-items-center">
                 {{ if (gt .Item.Discount 0) }}
 
-                <strike class="text-muted">
+                <div class="pricingDiv"><strike class="text-muted">
                   {{ renderMoney .Price }}
                 </strike>
-                <p style="color: #707070">{{ .Item.Discount }}</p>
+                  <p style="color: #707070">{{ .Item.Discount }}%</p>
+                  <p style="color: darkred">{{ renderMoney .NewPrice }}</p>
+
+                </div>
+
 
                 {{ else }}
                 <p class="text-muted">
