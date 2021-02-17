@@ -17,6 +17,8 @@ package main
 import (
 	"context"
 	discountservice "github.com/oliviermichaelis/discount-service/pkg/genproto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"testing"
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
@@ -24,13 +26,29 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
+
+type mockedClient struct{}
+
+func (mockedClient) ListProducts(ctx context.Context, in *pb.Empty, opts ...grpc.CallOption) (*pb.ListProductsResponse, error) {
+	cat := pb.ListProductsResponse{}
+	if err := readCatalogFile(&cat); err != nil {
+		return nil, err
+	}
+	return &cat, nil
+}
+
+func (mockedClient) GetProduct(ctx context.Context, in *pb.GetProductRequest, opts ...grpc.CallOption) (*pb.Product, error) {
+	panic("implement me")
+}
+
+func (mockedClient) SearchProducts(ctx context.Context, in *pb.SearchProductsRequest, opts ...grpc.CallOption) (*pb.SearchProductsResponse, error) {
+	panic("implement me")
+}
 
 func TestServer(t *testing.T) {
 	ctx := context.Background()
-	addr := run("0")
+	addr := run("0", false)
 	conn, err := grpc.Dial(addr,
 		grpc.WithInsecure(),
 		grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
@@ -103,7 +121,7 @@ func TestConvertToProductDiscount(t *testing.T) {
 		Name:        "Camera",
 		Description: "vintage camera",
 		Picture:     "123",
-		PriceUsd:    nil,
+		PriceUsd:    &pb.Money{},
 		Categories:  []string{"hobbies", "vintage"},
 		Discount:    25,
 	}

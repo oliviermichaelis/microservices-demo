@@ -52,7 +52,7 @@ var (
 	log          *logrus.Logger
 	extraLatency time.Duration
 
-	port = "3550"
+	port                = "3550"
 	discountServiceAddr = "discountservice.default.svc.cluster.local:5000"
 
 	reloadCatalog bool
@@ -132,11 +132,11 @@ func main() {
 		port = os.Getenv("PORT")
 	}
 	log.Infof("starting grpc server at :%s", port)
-	run(port)
+	run(port, true)
 	select {}
 }
 
-func run(port string) string {
+func run(port string, discountEnabled bool) string {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatal(err)
@@ -150,7 +150,7 @@ func run(port string) string {
 		srv = grpc.NewServer()
 	}
 
-	svc := NewProductCatalog(discountServiceAddr)
+	svc := NewProductCatalog(discountServiceAddr, discountEnabled)
 
 	pb.RegisterProductCatalogServiceServer(srv, svc)
 	healthpb.RegisterHealthServer(srv, svc)
@@ -240,12 +240,14 @@ func initProfiling(service, version string) {
 }
 
 type productCatalog struct {
-	addr string
+	addr            string
+	discountEnabled bool
 }
 
-func NewProductCatalog(addr string) *productCatalog {
+func NewProductCatalog(addr string, discountEnabled bool) *productCatalog {
 	return &productCatalog{
-		addr: addr,
+		addr:            addr,
+		discountEnabled: discountEnabled,
 	}
 }
 
@@ -288,6 +290,11 @@ func (p *productCatalog) ListProducts(ctx context.Context, em *pb.Empty) (*pb.Li
 	// gets all products with parsecatalog()
 	pr := parseCatalog()
 
+	// This is triggered in unit tests
+	if !p.discountEnabled {
+		return &pb.ListProductsResponse{Products: pr}, nil
+	}
+
 	// Create GRPC client to connect to discount-service
 	conn, err := grpc.DialContext(ctx, p.addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))
 	if err != nil {
@@ -322,6 +329,7 @@ func (p *productCatalog) ListProducts(ctx context.Context, em *pb.Empty) (*pb.Li
 
 	// returns all discounted products
 	return &pb.ListProductsResponse{Products: c}, nil
+
 }
 
 func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductRequest) (*pb.Product, error) {
@@ -334,6 +342,11 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 	}
 	if found == nil {
 		return nil, status.Errorf(codes.NotFound, "no product with ID %s", req.Id)
+	}
+
+	// This is triggered in unit tests
+	if !p.discountEnabled {
+		return found, nil
 	}
 
 	conn, err := grpc.DialContext(ctx, p.addr, grpc.WithInsecure(), grpc.WithTimeout(time.Second*3), grpc.WithStatsHandler(&ocgrpc.ClientHandler{}))

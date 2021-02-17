@@ -41,7 +41,7 @@ type platformDetails struct {
 var (
 	templates = template.Must(template.New("").
 			Funcs(template.FuncMap{
-			"renderMoney": renderMoney,
+			"renderMoney":    renderMoney,
 			"renderDiscount": renderDiscount,
 			"renderNewPrice": renderNewPrice,
 		}).ParseGlob("templates/*.html"))
@@ -68,30 +68,27 @@ func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type productView struct {
-		Item  *pb.Product
-		Price *pb.Money
+		Item     *pb.Product
+		Price    *pb.Money
 		NewPrice *pb.Money
-
-
 	}
 	ps := make([]productView, len(products))
 	for i, p := range products {
 		price, err := fe.convertCurrency(r.Context(), p.
 			GetPriceUsd(), currentCurrency(r))
 
-		f, err:=	strconv.ParseFloat(fmt.Sprintf("%d.%02d", p.PriceUsd.Units, p.PriceUsd.Nanos), 64)
-		discounted:=f*(1-(float64(p.Discount)/100))
-		NewPrice:=&pb.Money{
+		f, err := strconv.ParseFloat(fmt.Sprintf("%d.%02d", p.PriceUsd.Units, p.PriceUsd.Nanos), 64)
+		discounted := f * (1 - (float64(p.Discount) / 100))
+		NewPrice := &pb.Money{
 			CurrencyCode: p.PriceUsd.CurrencyCode,
-			Units: int64(discounted),
-			Nanos: int32((discounted-float64(int64(discounted)))*1000000000),
-
+			Units:        int64(discounted),
+			Nanos:        int32((discounted - float64(int64(discounted))) * 1000000000),
 		}
 		if err != nil {
 			renderHTTPError(log, r, w, errors.Wrapf(err, "failed to do currency conversion for product %s", p.GetId()), http.StatusInternalServerError)
 			return
 		}
-		ps[i] = productView{p, price,NewPrice}
+		ps[i] = productView{p, price, NewPrice}
 	}
 
 	//get env and render correct platform banner.
@@ -176,8 +173,7 @@ func (fe *frontendServer) productHandler(w http.ResponseWriter, r *http.Request)
 		Price *pb.Money
 	}{p, price}
 
-
-//this is the place where the product is injected into the template
+	//this is the place where the product is injected into the template
 	if err := templates.ExecuteTemplate(w, "product", map[string]interface{}{
 		"session_id":      sessionID(r),
 		"request_id":      r.Context().Value(ctxKeyRequestID{}),
@@ -476,6 +472,6 @@ func renderMoney(money pb.Money) string {
 func renderDiscount(d int64) string {
 	return fmt.Sprintf("%d", d)
 }
-func renderNewPrice(money pb.Money) string{
+func renderNewPrice(money pb.Money) string {
 	return fmt.Sprintf("%s %d.%02d", money.GetCurrencyCode(), money.GetUnits(), money.GetNanos()/10000000)
 }
