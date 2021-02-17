@@ -3,16 +3,17 @@ name: build and deploy
 on: [push, pull_request]
 
 jobs:
-#  test:
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@v2
-#    - name: Set up Go
-#      uses: actions/setup-go@v2
-#      with:
-#        go-version: 1.15
-#    - name: Build
-#      run: go test -v ./...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+    - name: Test productcatalogservice
+      working-directory: src/productcatalogservice
+      run: go test -v ./...
   build-container-frontend:
     runs-on: ubuntu-latest
     name: build frontend container
@@ -33,6 +34,7 @@ jobs:
           push: true
           tags: ghcr.io/oliviermichaelis/frontend:${{ github.sha }}
   build-container-pcs:
+    needs: [test]
     runs-on: ubuntu-latest
     name: build pcs container
     steps:
