@@ -53,7 +53,7 @@ var (
 	extraLatency time.Duration
 
 	port                = "3550"
-	discountServiceAddr = "discountservice.default.svc.cluster.local:5000"
+	discountServiceAddr = "discount-service.default.svc.cluster.local:5000"
 
 	reloadCatalog bool
 )
