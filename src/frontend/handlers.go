@@ -31,7 +31,11 @@ import (
 
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/frontend/genproto"
 	"github.com/GoogleCloudPlatform/microservices-demo/src/frontend/money"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 )
+
 
 type platformDetails struct {
 	css      string
@@ -46,9 +50,22 @@ var (
 			"renderNewPrice": renderNewPrice,
 		}).ParseGlob("templates/*.html"))
 	plat platformDetails
+
+	countHomeHandler = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "homeHandler_requests_total",
+		Help: "The total number homeHandler got requested",
+	})
+
+	countAddToCartHandler = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "addToCartHandler_requests_total",
+		Help: "The total number of requested AddToCartHandler",
+	})
+
+
 )
 
 func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
+	countHomeHandler.Inc()
 	log := r.Context().Value(ctxKeyLog{}).(logrus.FieldLogger)
 	log.WithField("currency", currentCurrency(r)).Info("home")
 	currencies, err := fe.getCurrencies(r.Context())
@@ -192,6 +209,7 @@ func (fe *frontendServer) productHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (fe *frontendServer) addToCartHandler(w http.ResponseWriter, r *http.Request) {
+	countAddToCartHandler.Inc()
 	log := r.Context().Value(ctxKeyLog{}).(logrus.FieldLogger)
 	quantity, _ := strconv.ParseUint(r.FormValue("quantity"), 10, 32)
 	productID := r.FormValue("product_id")
