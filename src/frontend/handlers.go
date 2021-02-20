@@ -33,9 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/microservices-demo/src/frontend/money"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-
 )
-
 
 type platformDetails struct {
 	css      string
@@ -60,8 +58,6 @@ var (
 		Name: "addToCartHandler_requests_total",
 		Help: "The total number of requested AddToCartHandler",
 	})
-
-
 )
 
 func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +97,7 @@ func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 			Units:        int64(discounted),
 			Nanos:        int32((discounted - float64(int64(discounted))) * 1000000000),
 		}
-		newPriceFinale,err:=fe.convertCurrency(r.Context(),NewPrice, currentCurrency(r))
+		newPriceFinale, err := fe.convertCurrency(r.Context(), NewPrice, currentCurrency(r))
 		if err != nil {
 			renderHTTPError(log, r, w, errors.Wrapf(err, "failed to do currency conversion for product %s", p.GetId()), http.StatusInternalServerError)
 			return
@@ -185,7 +181,6 @@ func (fe *frontendServer) productHandler(w http.ResponseWriter, r *http.Request)
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to convert currency"), http.StatusInternalServerError)
 		return
 	}
-
 
 	recommendations, err := fe.getRecommendations(r.Context(), sessionID(r), []string{id})
 	if err != nil {
