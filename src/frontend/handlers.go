@@ -101,11 +101,12 @@ func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 			Units:        int64(discounted),
 			Nanos:        int32((discounted - float64(int64(discounted))) * 1000000000),
 		}
+		newPriceFinale,err:=fe.convertCurrency(r.Context(),NewPrice, currentCurrency(r))
 		if err != nil {
 			renderHTTPError(log, r, w, errors.Wrapf(err, "failed to do currency conversion for product %s", p.GetId()), http.StatusInternalServerError)
 			return
 		}
-		ps[i] = productView{p, price, NewPrice}
+		ps[i] = productView{p, price, newPriceFinale}
 	}
 
 	//get env and render correct platform banner.
@@ -172,12 +173,19 @@ func (fe *frontendServer) productHandler(w http.ResponseWriter, r *http.Request)
 		renderHTTPError(log, r, w, errors.Wrap(err, "could not retrieve cart"), http.StatusInternalServerError)
 		return
 	}
-
-	price, err := fe.convertCurrency(r.Context(), p.GetPriceUsd(), currentCurrency(r))
+	f, err := strconv.ParseFloat(fmt.Sprintf("%d.%02d", p.PriceUsd.Units, p.PriceUsd.Nanos), 64)
+	discounted := f * (1 - (float64(p.Discount) / 100))
+	NewPrice := &pb.Money{
+		CurrencyCode: p.PriceUsd.CurrencyCode,
+		Units:        int64(discounted),
+		Nanos:        int32((discounted - float64(int64(discounted))) * 1000000000),
+	}
+	price, err := fe.convertCurrency(r.Context(), NewPrice, currentCurrency(r))
 	if err != nil {
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to convert currency"), http.StatusInternalServerError)
 		return
 	}
+
 
 	recommendations, err := fe.getRecommendations(r.Context(), sessionID(r), []string{id})
 	if err != nil {
@@ -284,7 +292,14 @@ func (fe *frontendServer) viewCartHandler(w http.ResponseWriter, r *http.Request
 			renderHTTPError(log, r, w, errors.Wrapf(err, "could not retrieve product #%s", item.GetProductId()), http.StatusInternalServerError)
 			return
 		}
-		price, err := fe.convertCurrency(r.Context(), p.GetPriceUsd(), currentCurrency(r))
+		f, err := strconv.ParseFloat(fmt.Sprintf("%d.%02d", p.PriceUsd.Units, p.PriceUsd.Nanos), 64)
+		discounted := f * (1 - (float64(p.Discount) / 100))
+		NewPrice := &pb.Money{
+			CurrencyCode: p.PriceUsd.CurrencyCode,
+			Units:        int64(discounted),
+			Nanos:        int32((discounted - float64(int64(discounted))) * 1000000000),
+		}
+		price, err := fe.convertCurrency(r.Context(), NewPrice, currentCurrency(r))
 		if err != nil {
 			renderHTTPError(log, r, w, errors.Wrapf(err, "could not convert currency for product #%s", item.GetProductId()), http.StatusInternalServerError)
 			return
