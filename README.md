@@ -1,3 +1,8 @@
+# Overview
+This service extends the demo by integrating the [oliviermichaelis/discount-service](https://github.com/oliviermichaelis/discount-service).
+The project is deployed in the cloud and can be accessed directly through the following link: https://frontend-external-oliviermichaelis.cloud.okteto.net/
+
+### Introduction
 <p align="center">
 <img src="src/frontend/static/icons/Hipster_HeroLogoCyan.svg" width="300" alt="Online Boutique" />
 </p>
